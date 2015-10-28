@@ -93,6 +93,11 @@ commonOptions(program.command('bundle'))
     'The platform for which to create the bundle. [ios]',
     'ios'
   )
+  .option(
+    '-s, --sourceMap',
+    'Whether a source map should be generated',
+    false
+  )
   .action(function(options) {
     const opts = options.opts();
     const server = createServer(opts);
@@ -108,6 +113,13 @@ commonOptions(program.command('bundle'))
       pathname: 'index.ios.bundle',
       query: query,
     });
+    const sourceMapUrl = url.format({
+      protocol: 'http',
+      hostname: 'localhost',
+      port: opts.port,
+      pathname: 'index.ios.map',
+      query: query,
+    });
     const targetPath = path.resolve(opts.bundlePath);
 
     // Re-throw error if bundle fails
@@ -119,6 +131,12 @@ commonOptions(program.command('bundle'))
       return fetch(bundleUrl);
     }).then(function(bundleSrc) {
       fs.writeFileSync(targetPath, bundleSrc);
+
+      if (opts.sourceMap) {
+        return fetch(sourceMapUrl).then(function(sourceMapSrc) {
+          fs.writeFileSync(targetPath + '.map', sourceMapSrc);
+        });
+      }
     }).finally(function() {
       server.stop();
     });
